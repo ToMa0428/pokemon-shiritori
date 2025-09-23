@@ -95,7 +95,14 @@ window.downloadAll = async () => {
         window.updateProgressBar(completedGenerations, totalGenerations);
     }
     
+    // ダウンロード完了後にデータをまとめて、ゲームモード画面に遷移
     loadingMessage.textContent = "ダウンロードかんりょう！";
+    allPokemon = [];
+    generations.forEach(genData => {
+        const gen = genData.url.split("/").filter(Boolean).pop();
+        allPokemon = allPokemon.concat(JSON.parse(localStorage.getItem(`region_${gen}`)));
+    });
+
     setTimeout(() => {
         window.showScreen('gameModeScreen');
         window.displayHighScores();
@@ -125,28 +132,31 @@ window.fetchAndCacheRegion = async (gen, name) => {
 
 // ゲーム準備
 window.prepareGame = async () => {
-    // 最初にロード画面を表示する
     window.showScreen('loadingScreen');
 
-    allPokemon = [];
     const res = await fetch('https://pokeapi.co/api/v2/generation/');
     const data = await res.json();
     const generations = data.results;
 
-    let hasCachedData = false;
+    let allGenerationsCached = true;
     generations.forEach(genData => {
         const gen = genData.url.split("/").filter(Boolean).pop();
-        if (window.isRegionCached(gen)) {
-            allPokemon = allPokemon.concat(JSON.parse(localStorage.getItem(`region_${gen}`)));
-            hasCachedData = true;
+        const cachedData = localStorage.getItem(`region_${gen}`);
+        if (!cachedData || JSON.parse(cachedData).length === 0) {
+            allGenerationsCached = false;
         }
     });
 
-    if (!hasCachedData) {
-        // キャッシュデータがない場合は、すべてのデータをダウンロードする
+    if (!allGenerationsCached) {
+        // すべての世代がキャッシュされていない、またはデータが空の場合はダウンロードする
         await window.downloadAll();
     } else {
-        // キャッシュデータがある場合は、すぐにモード選択画面へ
+        // すべての世代がキャッシュされている場合は、データをまとめてモード選択画面へ
+        allPokemon = [];
+        generations.forEach(genData => {
+            const gen = genData.url.split("/").filter(Boolean).pop();
+            allPokemon = allPokemon.concat(JSON.parse(localStorage.getItem(`region_${gen}`)));
+        });
         window.showScreen('gameModeScreen');
         window.displayHighScores();
     }
@@ -174,6 +184,11 @@ window.startGame = (mode, hintOption) => {
     window.showScreen('gameScreen');
 
     const firstPokemon = window.getValidFirstPokemon();
+    // 最初のポケモンが見つからない場合はエラーメッセージを表示して終了
+    if (!firstPokemon) {
+        window.endGame("ごめんね！ポケモンデータがうまく読み込めなかったみたい。リロードしてみてね！", 0);
+        return;
+    }
     window.updateHistory(firstPokemon);
     lastChar = window.getLastChar(firstPokemon.name);
 
