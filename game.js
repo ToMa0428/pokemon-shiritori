@@ -13,9 +13,6 @@ let aiThinkingInterval = null;
 
 // 五十音フィルター用
 let filteredPokemon = [];
-const kanaMap = {
-    // このマップは不要になりました。代わりに直接選択された文字を使います。
-};
 
 // HTML要素の変数をグローバルスコープで宣言
 let statusElement;
@@ -35,26 +32,26 @@ let pokedexKanaSelect;
 
 // DOMContentLoaded後に初期化を行う
 document.addEventListener('DOMContentLoaded', () => {
-  statusElement = document.getElementById("status");
-  inputElement = document.getElementById("input");
-  historyElement = document.getElementById("history");
-  hintElement = document.getElementById("hint");
-  countdownElement = document.getElementById("countdown");
-  pokedexContent = document.getElementById("pokedexContent");
-  highScoreSolo = document.getElementById("highScoreSolo");
-  highScoreAi = document.getElementById("highScoreAi");
-  loadingMessage = document.getElementById("loadingMessage");
-  progressBar = document.getElementById("progressBar");
-  prevPageBtn = document.getElementById("prevPageBtn");
-  nextPageBtn = document.getElementById("nextPageBtn");
-  hintContainerElement = document.getElementById("hint-container");
-  pokedexKanaSelect = document.getElementById("pokedexKanaSelect"); // 新しい要素を取得
+    statusElement = document.getElementById("status");
+    inputElement = document.getElementById("input");
+    historyElement = document.getElementById("history");
+    hintElement = document.getElementById("hint");
+    countdownElement = document.getElementById("countdown");
+    pokedexContent = document.getElementById("pokedexContent");
+    highScoreSolo = document.getElementById("highScoreSolo");
+    highScoreAi = document.getElementById("highScoreAi");
+    loadingMessage = document.getElementById("loadingMessage");
+    progressBar = document.getElementById("progressBar");
+    prevPageBtn = document.getElementById("prevPageBtn");
+    nextPageBtn = document.getElementById("nextPageBtn");
+    hintContainerElement = document.getElementById("hint-container");
+    pokedexKanaSelect = document.getElementById("pokedexKanaSelect"); // 新しい要素を取得
 
-  // 五十音プルダウンのイベントリスナー
-  pokedexKanaSelect.addEventListener('change', (e) => {
-      const selectedKana = e.target.value;
-      window.filterPokedex(selectedKana);
-  });
+    // 五十音プルダウンのイベントリスナー
+    pokedexKanaSelect.addEventListener('change', (e) => {
+        const selectedKana = e.target.value;
+        window.filterPokedex(selectedKana);
+    });
 });
 
 // --- データ管理とダウンロード ---
@@ -128,119 +125,125 @@ window.fetchAndCacheRegion = async (gen, name) => {
 
 // ゲーム準備
 window.prepareGame = async () => {
-  allPokemon = [];
-  const res = await fetch('https://pokeapi.co/api/v2/generation/');
-  const data = await res.json();
-  const generations = data.results;
+    // 最初にロード画面を表示する
+    window.showScreen('loadingScreen');
 
-  let hasCachedData = false;
-  generations.forEach(genData => {
-    const gen = genData.url.split("/").filter(Boolean).pop();
-    if (window.isRegionCached(gen)) {
-      allPokemon = allPokemon.concat(JSON.parse(localStorage.getItem(`region_${gen}`)));
-      hasCachedData = true;
+    allPokemon = [];
+    const res = await fetch('https://pokeapi.co/api/v2/generation/');
+    const data = await res.json();
+    const generations = data.results;
+
+    let hasCachedData = false;
+    generations.forEach(genData => {
+        const gen = genData.url.split("/").filter(Boolean).pop();
+        if (window.isRegionCached(gen)) {
+            allPokemon = allPokemon.concat(JSON.parse(localStorage.getItem(`region_${gen}`)));
+            hasCachedData = true;
+        }
+    });
+
+    if (!hasCachedData) {
+        // キャッシュデータがない場合は、すべてのデータをダウンロードする
+        await window.downloadAll();
+    } else {
+        // キャッシュデータがある場合は、すぐにモード選択画面へ
+        window.showScreen('gameModeScreen');
+        window.displayHighScores();
     }
-  });
-
-  if (!hasCachedData) {
-    await window.downloadAll();
-  } else {
-    window.showScreen('gameModeScreen');
-  }
 };
 
 // --- ゲームメインロジック ---
 window.startGame = (mode, hintOption) => {
-  // ゲームの状態をリセット
-  usedPokemonNames = [];
-  lastChar = '';
-  currentMode = mode;
-  currentHintOption = hintOption;
-  
-  // UIをリセット
-  historyElement.innerHTML = '';
-  hintContainerElement.innerHTML = '';
-  inputElement.value = '';
-  countdownElement.textContent = '';
-  
-  // タイマーをリセット
-  if (window.countdownInterval) clearInterval(window.countdownInterval);
-  if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
-  if (aiThinkingInterval) clearInterval(aiThinkingInterval);
+    // ゲームの状態をリセット
+    usedPokemonNames = [];
+    lastChar = '';
+    currentMode = mode;
+    currentHintOption = hintOption;
+    
+    // UIをリセット
+    historyElement.innerHTML = '';
+    hintContainerElement.innerHTML = '';
+    inputElement.value = '';
+    countdownElement.textContent = '';
+    
+    // タイマーをリセット
+    if (window.countdownInterval) clearInterval(window.countdownInterval);
+    if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
+    if (aiThinkingInterval) clearInterval(aiThinkingInterval);
 
-  window.showScreen('gameScreen');
+    window.showScreen('gameScreen');
 
-  const firstPokemon = window.getValidFirstPokemon();
-  window.updateHistory(firstPokemon);
-  lastChar = window.getLastChar(firstPokemon.name);
+    const firstPokemon = window.getValidFirstPokemon();
+    window.updateHistory(firstPokemon);
+    lastChar = window.getLastChar(firstPokemon.name);
 
-  statusElement.textContent = `「${firstPokemon.name}」から はじまるよ！つぎは「${lastChar}」だね！`;
-  inputElement.focus();
-  isPlayerTurn = true;
-  if (currentMode === 'solo' && currentHintOption !== 'none') {
-      window.startHintCountdown();
-  } else if (currentMode === 'ai') {
-      inputElement.disabled = false;
-      document.getElementById('inputForm').style.display = 'block';
-      window.startAITurn();
-  }
+    statusElement.textContent = `「${firstPokemon.name}」から はじまるよ！つぎは「${lastChar}」だね！`;
+    inputElement.focus();
+    isPlayerTurn = true;
+    if (currentMode === 'solo' && currentHintOption !== 'none') {
+        window.startHintCountdown();
+    } else if (currentMode === 'ai') {
+        inputElement.disabled = false;
+        document.getElementById('inputForm').style.display = 'block';
+        window.startAITurn();
+    }
 };
 
 window.getValidFirstPokemon = () => {
-  const validPokemon = allPokemon.filter(p => window.getLastChar(p.name) !== 'ン');
-  return validPokemon[Math.floor(Math.random() * validPokemon.length)];
+    const validPokemon = allPokemon.filter(p => window.getLastChar(p.name) !== 'ン');
+    return validPokemon[Math.floor(Math.random() * validPokemon.length)];
 };
 
 // ユーザーの入力をチェックする関数
 window.checkUserInput = () => {
-  const kanaName = inputElement.value.trim();
-  const katakanaName = kanaName.replace(/[\u3041-\u3096]/g, function(match) {
-    var chr = match.charCodeAt(0) + 0x60;
-    return String.fromCharCode(chr);
-  });
+    const kanaName = inputElement.value.trim();
+    const katakanaName = kanaName.replace(/[\u3041-\u3096]/g, function(match) {
+        var chr = match.charCodeAt(0) + 0x60;
+        return String.fromCharCode(chr);
+    });
 
-  inputElement.value = '';
+    inputElement.value = '';
 
-  // タイマーとヒントタイマーをリセット
-  if (window.countdownInterval) clearInterval(window.countdownInterval);
-  if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
-  countdownElement.textContent = '';
-  hintContainerElement.innerHTML = '';
-  
-  // AIモードの場合
-  if (currentMode === 'ai') {
-      inputElement.disabled = true;
-  }
+    // タイマーとヒントタイマーをリセット
+    if (window.countdownInterval) clearInterval(window.countdownInterval);
+    if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
+    countdownElement.textContent = '';
+    hintContainerElement.innerHTML = '';
+    
+    // AIモードの場合
+    if (currentMode === 'ai') {
+        inputElement.disabled = true;
+    }
 
-  const pokemon = allPokemon.find(p => p.name === katakanaName);
+    const pokemon = allPokemon.find(p => p.name === katakanaName);
 
-  if (!pokemon) {
-    statusElement.textContent = `あれ？「${katakanaName}」って、ポケモンかな？`;
-    return;
-  }
-  if (usedPokemonNames.includes(katakanaName)) {
-    statusElement.textContent = `「${katakanaName}」は、さっき言ったよ！`;
-    return;
-  }
-  if (!katakanaName.startsWith(lastChar)) {
-    statusElement.textContent = `「${lastChar}」から はじまるポケモンだよ！`;
-    return;
-  }
+    if (!pokemon) {
+        statusElement.textContent = `あれ？「${katakanaName}」って、ポケモンかな？`;
+        return;
+    }
+    if (usedPokemonNames.includes(katakanaName)) {
+        statusElement.textContent = `「${katakanaName}」は、さっき言ったよ！`;
+        return;
+    }
+    if (!katakanaName.startsWith(lastChar)) {
+        statusElement.textContent = `「${lastChar}」から はじまるポケモンだよ！`;
+        return;
+    }
 
-  window.updateHistory(pokemon);
-  lastChar = window.getLastChar(pokemon.name);
+    window.updateHistory(pokemon);
+    lastChar = window.getLastChar(pokemon.name);
 
-  if (lastChar === 'ン') {
-    window.endGame(`「${pokemon.name}」で「ん」がついちゃった！ おしまい！`, usedPokemonNames.length);
-    return;
-  }
+    if (lastChar === 'ン') {
+        window.endGame(`「${pokemon.name}」で「ん」がついちゃった！ おしまい！`, usedPokemonNames.length);
+        return;
+    }
 
-  statusElement.textContent = `つぎは「${lastChar}」から！`;
-  if (currentMode === 'solo' && currentHintOption !== 'none') {
-      window.startHintCountdown();
-  } else if (currentMode === 'ai') {
-      window.startAITurn();
-  }
+    statusElement.textContent = `つぎは「${lastChar}」から！`;
+    if (currentMode === 'solo' && currentHintOption !== 'none') {
+        window.startHintCountdown();
+    } else if (currentMode === 'ai') {
+        window.startAITurn();
+    }
 };
 
 // AIのターン
@@ -309,80 +312,80 @@ window.startAITimer = () => {
 
 // ヒントカウントダウン
 window.startHintCountdown = () => {
-  if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
-  hintContainerElement.innerHTML = '';
-  
-  let hintCount = 10;
-  countdownElement.textContent = `ヒントは ${hintCount}びょうご…`;
+    if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
+    hintContainerElement.innerHTML = '';
+    
+    let hintCount = 10;
+    countdownElement.textContent = `ヒントは ${hintCount}びょうご…`;
 
-  window.hintCountdownInterval = setInterval(() => {
-    hintCount--;
-    if (hintCount > 0) {
-      countdownElement.textContent = `ヒントは ${hintCount}びょうご…`;
-    } else {
-      clearInterval(window.hintCountdownInterval);
-      countdownElement.textContent = 'ヒントだよ！';
-      
-      const candidates = allPokemon.filter(p =>
-        !usedPokemonNames.includes(p.name) &&
-        p.name.startsWith(lastChar) &&
-        window.getLastChar(p.name) !== 'ン'
-      );
-
-      if (candidates.length > 0) {
-        const hintPokemon = candidates[Math.floor(Math.random() * candidates.length)];
-        const img = document.createElement('img');
-        img.src = hintPokemon.image;
-        img.alt = 'つぎのポケモンのヒント';
-        
-        if (currentHintOption === 'silhouette') {
-          img.classList.add('silhouette');
+    window.hintCountdownInterval = setInterval(() => {
+        hintCount--;
+        if (hintCount > 0) {
+            countdownElement.textContent = `ヒントは ${hintCount}びょうご…`;
         } else {
-          img.classList.remove('silhouette');
-        }
+            clearInterval(window.hintCountdownInterval);
+            countdownElement.textContent = 'ヒントだよ！';
+            
+            const candidates = allPokemon.filter(p =>
+                !usedPokemonNames.includes(p.name) &&
+                p.name.startsWith(lastChar) &&
+                window.getLastChar(p.name) !== 'ン'
+            );
 
-        hintContainerElement.appendChild(img);
-      } else {
-        hintElement.textContent = "あれ…？このもじから はじまるポケモンが もういないみたい！";
-        setTimeout(() => window.endGame("つづくポケモンが いなくなっちゃった！", usedPokemonNames.length), 2000);
-      }
-    }
-  }, 1000);
+            if (candidates.length > 0) {
+                const hintPokemon = candidates[Math.floor(Math.random() * candidates.length)];
+                const img = document.createElement('img');
+                img.src = hintPokemon.image;
+                img.alt = 'つぎのポケモンのヒント';
+                
+                if (currentHintOption === 'silhouette') {
+                    img.classList.add('silhouette');
+                } else {
+                    img.classList.remove('silhouette');
+                }
+
+                hintContainerElement.appendChild(img);
+            } else {
+                hintElement.textContent = "あれ…？このもじから はじまるポケモンが もういないみたい！";
+                setTimeout(() => window.endGame("つづくポケモンが いなくなっちゃった！", usedPokemonNames.length), 2000);
+            }
+        }
+    }, 1000);
 };
 
 // endGame関数を修正
 window.endGame = (message, score) => {
-  // すべてのタイマーを停止
-  if (window.countdownInterval) clearInterval(window.countdownInterval);
-  if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
-  if (aiThinkingInterval) clearInterval(aiThinkingInterval);
-  
-  window.showScreen('endScreen');
+    // すべてのタイマーを停止
+    if (window.countdownInterval) clearInterval(window.countdownInterval);
+    if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
+    if (aiThinkingInterval) clearInterval(aiThinkingInterval);
+    
+    window.showScreen('endScreen');
 
-  let finalScore = score;
-  if (currentMode === 'ai') {
-      finalScore = Math.floor(usedPokemonNames.length / 2);
-  }
-  
-  // ハイスコア更新チェックとメッセージ設定
-  const highScoreKey = `shiritoriHighScore_${currentMode}_${currentHintOption}`;
-  const storedHighScore = localStorage.getItem(highScoreKey);
-  let highScore = 0;
-  if (storedHighScore) {
-      highScore = parseInt(storedHighScore, 10);
-  }
+    let finalScore = score;
+    if (currentMode === 'ai') {
+        finalScore = Math.floor(usedPokemonNames.length / 2);
+    }
+    
+    // ハイスコア更新チェックとメッセージ設定
+    const highScoreKey = `shiritoriHighScore_${currentMode}_${currentHintOption}`;
+    const storedHighScore = localStorage.getItem(highScoreKey);
+    let highScore = 0;
+    if (storedHighScore) {
+        highScore = parseInt(storedHighScore, 10);
+    }
 
-  let finalMessage = message;
-  if (finalScore > highScore) {
-    highScore = finalScore;
-    localStorage.setItem(highScoreKey, highScore);
-    finalMessage += "<br>ハイスコアこうしん！✨";
-  }
+    let finalMessage = message;
+    if (finalScore > highScore) {
+        highScore = finalScore;
+        localStorage.setItem(highScoreKey, highScore);
+        finalMessage += "<br>ハイスコアこうしん！✨";
+    }
 
-  document.getElementById('endMessage').innerHTML = finalMessage;
-  document.getElementById('score').textContent = `つづいた かいすう: ${finalScore}かい`;
-  const endHistoryContainer = document.getElementById('endHistory');
-  endHistoryContainer.innerHTML = '<h3>今回のしりとり</h3>' + historyElement.innerHTML;
+    document.getElementById('endMessage').innerHTML = finalMessage;
+    document.getElementById('score').textContent = `つづいた かいすう: ${finalScore}かい`;
+    const endHistoryContainer = document.getElementById('endHistory');
+    endHistoryContainer.innerHTML = '<h3>今回のしりとり</h3>' + historyElement.innerHTML;
 };
 
 // ハイスコアを表示する関数
@@ -414,28 +417,28 @@ window.displayHighScores = () => {
 
 // --- ヘルパー関数 ---
 window.updateHistory = (pokemon) => {
-  usedPokemonNames.push(pokemon.name);
-  const item = document.createElement("div");
-  item.className = `history-item`;
-  const img = document.createElement("img");
-  img.src = pokemon.image;
-  img.alt = pokemon.name;
-  const name = document.createElement("span");
-  name.textContent = pokemon.name;
-  item.appendChild(img);
-  item.appendChild(name);
-  historyElement.appendChild(item);
-  historyElement.scrollTop = historyElement.scrollHeight;
+    usedPokemonNames.push(pokemon.name);
+    const item = document.createElement("div");
+    item.className = `history-item`;
+    const img = document.createElement("img");
+    img.src = pokemon.image;
+    img.alt = pokemon.name;
+    const name = document.createElement("span");
+    name.textContent = pokemon.name;
+    item.appendChild(img);
+    item.appendChild(name);
+    historyElement.appendChild(item);
+    historyElement.scrollTop = historyElement.scrollHeight;
 };
 
 window.getLastChar = (name) => {
-  let char = name.slice(-1);
-  const smallToLarge = {'ァ':'ア','ィ':'イ','ゥ':'ウ','ェ':'エ','ォ':'オ','ッ':'ツ','ャ':'ヤ','ュ':'ユ','ョ':'ヨ'};
-  if(smallToLarge[char]) char = smallToLarge[char];
-  if (char === 'ー' && name.length > 1) {
-    return name.slice(-2, -1);
-  }
-  return char;
+    let char = name.slice(-1);
+    const smallToLarge = {'ァ':'ア','ィ':'イ','ゥ':'ウ','ェ':'エ','ォ':'オ','ッ':'ツ','ャ':'ヤ','ュ':'ユ','ョ':'ヨ'};
+    if(smallToLarge[char]) char = smallToLarge[char];
+    if (char === 'ー' && name.length > 1) {
+        return name.slice(-2, -1);
+    }
+    return char;
 };
 
 // --- 図鑑モード関連 ---

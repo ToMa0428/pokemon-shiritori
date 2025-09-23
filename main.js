@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // タイトル画面
+    // --- 各ボタンのイベントリスナー ---
     // 「ゲームスタート」ボタンのクリックでダウンロード処理を開始
     document.getElementById('toGameModeBtnFromTitle').addEventListener('click', window.prepareGame);
 
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // 「しりとりを終わる」ボタンのイベントリスナー
     document.getElementById('endGameBtn').addEventListener('click', () => {
-      window.endGame("おつかれさま！じぶんでおわらせたよ！", usedPokemonNames.length);
+        window.endGame("おつかれさま！じぶんでおわらせたよ！", usedPokemonNames.length);
     });
 
     // 終了画面
@@ -57,6 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.showScreen('gameModeScreen');
     });
 
-    // 初期表示
-    window.showScreen('titleScreen');
+    // ページ読み込み時にロード画面を表示し、データの準備を開始する
+    window.prepareGame();
 });
