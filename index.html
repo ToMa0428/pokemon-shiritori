@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ポケモンしりとり</title>
+    <style>
+        /* CSSはここから */
+        body {
+            font-family: "Arial Rounded MT Bold", "ヒラギノ丸ゴ ProN", sans-serif;
+            text-align: center;
+            padding: 20px;
+            color: #333;
+            background-color: #f5f5f5;
+            position: relative;
+        }
+        h1 {
+            color: #d32f2f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        h1 img.header-icon {
+            width: 40px;
+            height: 40px;
+        }
+        #titleScreen, #gameModeScreen, #gameScreen, #endScreen, #pokedexScreen, #loadingScreen {
+            margin-top: 20px;
+            position: relative;
+        }
+        .btn {
+            padding: 12px 24px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #1976d2;
+            color: #fff;
+            transition: background-color 0.2s;
+        }
+        .btn:hover { background-color: #1565c0; }
+        .btn:disabled { background-color: #9e9e9e; cursor: not-allowed; }
+        #loading { font-size: 16px; margin: 10px; color: #555; }
+        #hint {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        #hint-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        #hint-container img {
+            width: 200px;
+            height: 200px;
+            display: block;
+            margin: 10px auto;
+            border: 4px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #history {
+            margin-top: 20px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 400px;
+            margin: 20px auto;
+            text-align: left;
+            border: 1px solid #ddd;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        input[type="text"] {
+            font-size: 18px;
+            padding: 12px;
+            width: 250px;
+            border-radius: 8px;
+            border: 2px solid #1976d2;
+            text-align: center;
+        }
+        .history-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 4px;
+            border-radius: 6px;
+            background-color: #e3f2fd;
+        }
+        .history-item img {
+            width: 40px;
+            height: 40px;
+            margin-right: 8px;
+        }
+        #status {
+            font-size: 20px;
+            font-weight: bold;
+            min-height: 30px;
+        }
+        #countdown {
+            font-size: 18px;
+            margin-top: 10px;
+            color: #d32f2f;
+            height: 25px;
+        }
+        #endMessage { font-size: 28px; color: #d32f2f; margin: 20px 0; }
+        #score { font-size: 24px; margin: 15px 0; }
+        .pokedex-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #fff;
+        }
+        .pokedex-item {
+            text-align: center;
+            padding: 5px;
+            font-size: 12px;
+            border-radius: 5px;
+            background-color: #e3f2fd;
+        }
+        .pokedex-item img {
+            width: 60px;
+            height: 60px;
+        }
+        .progress-bar {
+            width: 80%;
+            height: 30px;
+            background-color: #e0e0e0;
+            border-radius: 15px;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        /* シルエット画像用のCSS */
+        .silhouette {
+            filter: brightness(0);
+        }
+        .mode-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .mode-section h3 {
+            margin-top: 0;
+        }
+        .hint-options label {
+            margin-right: 15px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .pokedex-filter-container {
+            margin-bottom: 20px;
+        }
+        #pokedexKanaSelect {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+<h1>
+    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="モンスターボール" class="header-icon">
+    ポケモンしりとり
+    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="モンスターボール" class="header-icon">
+</h1>
+
+<div id="titleScreen">
+    <p>ポケモンしりとりへようこそ！</p>
+    <button class="btn" id="toGameModeBtnFromTitle">ゲームスタート</button>
+</div>
+
+<div id="loadingScreen" style="display:none;">
+    <p id="loadingMessage">データをダウンロード中...</p>
+    <div class="progress-bar">
+        <div class="progress-bar-fill" id="progressBar">0%</div>
+    </div>
+</div>
+
+<div id="gameModeScreen" style="display:none;">
+    <p>あそびかたをえらんでね！</p>
+    
+    <div class="mode-section">
+        <h3>ひとりでしりとり</h3>
+        <p class="high-score-display" id="highScoreSolo"></p>
+        <div class="hint-options">
+            <label><input type="radio" name="soloHint" value="normal" checked> ヒントあり</label>
+            <label><input type="radio" name="soloHint" value="silhouette"> ヒントあり（シルエット）</label>
+            <label><input type="radio" name="soloHint" value="none"> ヒントなし</label>
+        </div>
+        <button class="btn" id="toGameSoloBtn">スタート</button>
+    </div>
+
+    <div class="mode-section">
+        <h3>AIとしりとり</h3>
+        <p class="high-score-display" id="highScoreAi"></p>
+        <div class="hint-options">
+            <label><input type="radio" name="aiHint" value="normal" checked> ヒントあり</label>
+            <label><input type="radio" name="aiHint" value="silhouette"> ヒントあり（シルエット）</label>
+            <label><input type="radio" name="aiHint" value="none"> ヒントなし</label>
+        </div>
+        <button class="btn" id="toGameAiBtn">スタート</button>
+    </div>
+
+    <button class="btn" id="toPokedexBtn">ポケモンずかん</button>
+</div>
+
+<div id="gameScreen" style="display:none;">
+    <div id="status"></div>
+    <form id="inputForm">
+        <input type="text" id="input" placeholder="ポケモンのなまえ" autofocus autocomplete="off">
+    </form>
+    <div id="countdown"></div>
+    <div id="hint">
+        <div id="hint-container"></div>
+    </div>
+    <div id="history"></div>
+    <button class="btn" id="endGameBtn">しりとりをおわる</button>
+    <button class="btn" id="toTitleBtn2">タイトルにもどる</button>
+</div>
+
+<div id="endScreen" style="display:none;">
+    <div id="endMessage"></div>
+    <div id="score"></div>
+    <div id="endHistory"></div>
+    <button class="btn" id="restartBtn2">さいしょから</button>
+    <button class="btn" id="toTitleBtn3">タイトルにもどる</button>
+</div>
+
+<div id="pokedexScreen" style="display:none;">
+    <h2>ポケモンずかん</h2>
+    <div class="pokedex-filter-container">
+        <select id="pokedexKanaSelect">
+            <option value="all">すべて</option>
+            <option value="ア">ア</option>
+            <option value="イ">イ</option>
+            <option value="ウ">ウ</option>
+            <option value="エ">エ</option>
+            <option value="オ">オ</option>
+            <option value="カ">カ</option>
+            <option value="キ">キ</option>
+            <option value="ク">ク</option>
+            <option value="ケ">ケ</option>
+            <option value="コ">コ</option>
+            <option value="サ">サ</option>
+            <option value="シ">シ</option>
+            <option value="ス">ス</option>
+            <option value="セ">セ</option>
+            <option value="ソ">ソ</option>
+            <option value="タ">タ</option>
+            <option value="チ">チ</option>
+            <option value="ツ">ツ</option>
+            <option value="テ">テ</option>
+            <option value="ト">ト</option>
+            <option value="ナ">ナ</option>
+            <option value="ニ">ニ</option>
+            <option value="ヌ">ヌ</option>
+            <option value="ネ">ネ</option>
+            <option value="ノ">ノ</option>
+            <option value="ハ">ハ</option>
+            <option value="ヒ">ヒ</option>
+            <option value="フ">フ</option>
+            <option value="ヘ">ヘ</option>
+            <option value="ホ">ホ</option>
+            <option value="マ">マ</option>
+            <option value="ミ">ミ</option>
+            <option value="ム">ム</option>
+            <option value="メ">メ</option>
+            <option value="モ">モ</option>
+            <option value="ヤ">ヤ</option>
+            <option value="ユ">ユ</option>
+            <option value="ヨ">ヨ</option>
+            <option value="ラ">ラ</option>
+            <option value="リ">リ</option>
+            <option value="ル">ル</option>
+            <option value="レ">レ</option>
+            <option value="ロ">ロ</option>
+            <option value="ワ">ワ</option>
+            <option value="ヲ">ヲ</option>
+            <option value="ン">ン</option>
+        </select>
+    </div>
+    <div id="pokedexContent"></div>
+    <div id="pokedexPagination">
+        <button class="btn" id="prevPageBtn">前へ</button>
+        <button class="btn" id="nextPageBtn">次へ</button>
+    </div>
+    <button class="btn" id="toGameModeBtn">もどる</button>
+</div>
+
+<script src="game.js"></script>
+<script src="main.js"></script>
+
+</body>
+</html>
