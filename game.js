@@ -193,10 +193,14 @@ window.startGame = (mode, hintOption) => {
     lastChar = window.getLastChar(firstPokemon.name);
 
     statusElement.textContent = `「${firstPokemon.name}」から はじまるよ！つぎは「${lastChar}」だね！`;
-    inputElement.focus();
-    isPlayerTurn = true;
-    if (currentMode === 'solo' && currentHintOption !== 'none') {
-        window.startHintCountdown();
+
+    if (currentMode === 'solo') {
+        inputElement.disabled = false;
+        inputElement.focus();
+        document.getElementById('inputForm').style.display = 'block';
+        if (currentHintOption !== 'none') {
+            window.startHintCountdown();
+        }
     } else if (currentMode === 'ai') {
         inputElement.disabled = false;
         document.getElementById('inputForm').style.display = 'block';
@@ -225,26 +229,39 @@ window.checkUserInput = () => {
     countdownElement.textContent = '';
     hintContainerElement.innerHTML = '';
     
-    // AIモードの場合
-    if (currentMode === 'ai') {
-        inputElement.disabled = true;
-    }
-
     const pokemon = allPokemon.find(p => p.name === katakanaName);
 
     if (!pokemon) {
         statusElement.textContent = `あれ？「${katakanaName}」って、ポケモンかな？`;
+        if (currentMode === 'ai' || currentMode === 'solo') {
+            inputElement.disabled = false;
+            inputElement.focus();
+        }
         return;
     }
     if (usedPokemonNames.includes(katakanaName)) {
         statusElement.textContent = `「${katakanaName}」は、さっき言ったよ！`;
+        if (currentMode === 'ai' || currentMode === 'solo') {
+            inputElement.disabled = false;
+            inputElement.focus();
+        }
         return;
     }
     if (!katakanaName.startsWith(lastChar)) {
         statusElement.textContent = `「${lastChar}」から はじまるポケモンだよ！`;
+        if (currentMode === 'ai' || currentMode === 'solo') {
+            inputElement.disabled = false;
+            inputElement.focus();
+        }
         return;
     }
-
+    
+    // 正しい入力だった場合
+    // AIモードの場合はinputElementを無効化し、AIのターンへ
+    if (currentMode === 'ai') {
+        inputElement.disabled = true;
+    }
+    
     window.updateHistory(pokemon);
     lastChar = window.getLastChar(pokemon.name);
 
@@ -375,6 +392,8 @@ window.endGame = (message, score) => {
     if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
     if (aiThinkingInterval) clearInterval(aiThinkingInterval);
     
+    inputElement.disabled = true;
+    
     window.showScreen('endScreen');
 
     let finalScore = score;
@@ -406,8 +425,8 @@ window.endGame = (message, score) => {
 // ハイスコアを表示する関数
 window.displayHighScores = () => {
     const hintOptions = ['normal', 'silhouette', 'none'];
-    let soloScoreText = '';
-    let aiScoreText = '';
+    let soloScoreText = '<h4>ソロモード</h4>';
+    let aiScoreText = '<h4>AIモード</h4>';
 
     hintOptions.forEach(option => {
         const soloHighScore = localStorage.getItem(`shiritoriHighScore_solo_${option}`) || 0;
