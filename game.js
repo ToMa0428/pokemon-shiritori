@@ -223,12 +223,7 @@ window.checkUserInput = () => {
 
     inputElement.value = '';
 
-    // タイマーとヒントタイマーをリセット
-    if (window.countdownInterval) clearInterval(window.countdownInterval);
-    if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
-    countdownElement.textContent = '';
-    hintContainerElement.innerHTML = '';
-    
+    // 無効な入力の場合、タイマーはそのまま継続する
     const pokemon = allPokemon.find(p => p.name === katakanaName);
 
     if (!pokemon) {
@@ -256,7 +251,12 @@ window.checkUserInput = () => {
         return;
     }
     
-    // 正しい入力だった場合
+    // 正しい入力だった場合のみタイマーをリセット
+    if (window.countdownInterval) clearInterval(window.countdownInterval);
+    if (window.hintCountdownInterval) clearInterval(window.hintCountdownInterval);
+    countdownElement.textContent = '';
+    hintContainerElement.innerHTML = '';
+
     // AIモードの場合はinputElementを無効化し、AIのターンへ
     if (currentMode === 'ai') {
         inputElement.disabled = true;
@@ -438,10 +438,10 @@ window.displayHighScores = () => {
         if (option === 'none') label = '（ヒントなし）';
 
         soloScoreText += `
-            <p style="margin: 5px 0; font-size: 14px;">${label} ハイスコア: ${soloHighScore}かい</p>
+            <p style="margin: 0; font-size: 14px;">${label} ハイスコア: ${soloHighScore}かい</p>
         `;
         aiScoreText += `
-            <p style="margin: 5px 0; font-size: 14px;">${label} ハイスコア: ${aiHighScore}かい</p>
+            <p style="margin: 0; font-size: 14px;">${label} ハイスコア: ${aiHighScore}かい</p>
         `;
     });
 
